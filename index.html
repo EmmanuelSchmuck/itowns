@@ -34,8 +34,7 @@ and open the template in the editor.
         <script src="dist/debug.js"></script>
         <script type="text/javascript">
             /* global itowns,document,GuiTools*/
-
-            var positionOnGlobe = { longitude: 2.351323, latitude: 48.856712, altitude: 25000000 };
+            var positionOnGlobe = { longitude: 6.78, latitude: 45.9056, altitude: 14000 };
 
             // iTowns namespace defined here
             var viewerDiv = document.getElementById('viewerDiv');
@@ -43,27 +42,62 @@ and open the template in the editor.
             var menuGlobe = new GuiTools('menuDiv', globeView);
             menuGlobe.view = globeView;
 
-            var promises = []
-            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/Ortho.json').then(function(result) { return globeView.addLayer(result); }));
-            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/OrthosCRS.json').then(function(result) { return globeView.addLayer(result); }));
-            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/ScanEX.json').then(function(result) { return globeView.addLayer(result); }));
-            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/Region.json').then(function(result) { return globeView.addLayer(result); }));
+            var promises = [];
+            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/Ortho.json').then(function (result) { return globeView.addLayer(result); }));
+            // promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/OrthosCRS.json').then(function(result) { return globeView.addLayer(result); }));
+            // promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/ScanEX.json').then(function(result) { return globeView.addLayer(result); }));
+            // promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/Region.json').then(function(result) { return globeView.addLayer(result); }));
 
-            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/WORLD_DTM.json').then(function(result) { return globeView.addLayer(result); }));
-            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/IGN_MNT_HIGHRES.json').then(function(result) { return globeView.addLayer(result); }));
+            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/WORLD_DTM.json').then(function (result) { return globeView.addLayer(result); }));
+            promises.push(itowns.Fetcher.json('examples/layers/JSONLayers/IGN_MNT_HIGHRES.json').then(function (result) { return globeView.addLayer(result); }));
 
             menuGlobe.addGUI('RealisticLighting', false,
-                function(newValue) { globeView.setRealisticLightingOn(newValue); });
+                function (newValue) { globeView.setRealisticLightingOn(newValue); });
 
             Promise.all(promises).then(function () {
                 menuGlobe.addImageryLayersGUI(globeView.getLayers(function (l) { return l.type === 'color'; }));
-                menuGlobe.addElevationLayersGUI(globeView.getLayers(function(l) { return l.type === 'elevation'; }));
+                menuGlobe.addElevationLayersGUI(globeView.getLayers(function (l) { return l.type === 'elevation'; }));
                 console.info('menuGlobe initialized');
-            }).catch( function (e) { console.error(e) });
+            }).catch(function (e) { console.error(e); });
 
+            itowns.Fetcher.xml('examples/layers/croquis.kml').then(function (result) {
+                itowns.proj4.defs('EPSG:4236', '+proj=longlat +ellps=intl +towgs84=-637,-549,-203,0,0,0,0 +no_defs');
+                itowns.proj4.defs('EPSG:4978', '+proj=geocent +datum=WGS84 +no_defs');
+                itowns.proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
+
+                const autoLayer = {
+                    type: 'color',
+                    url: '',
+                    file: result,
+                    protocol: 'vector',
+                    id: 'Kml',
+                    name: 'Kml dessin',
+                    projection: 'EPSG:4326',
+                    extent: {
+                        west: 6,
+                        east: 7,
+                        south: 45,
+                        north: 46,
+                    },
+                    updateStrategy: {
+                        type: 0,
+                        options: {},
+                    },
+                    options: {
+                        mimetype: 'vector/kml',
+                        zoom: {
+                            min: 8,
+                            max: 21,
+                        },
+                    },
+                };
+                globeView.addLayer(autoLayer);
+                menuGlobe.addImageryLayersGUI(globeView.getLayers(function (l) { return l.id === 'Kml'; }));
+            });
             globeView.addEventListener(itowns.GLOBE_VIEW_EVENTS.GLOBE_INITIALIZED, function () {
                 // eslint-disable-next-line no-console
                 console.info('Globe initialized');
+                globeView.controls.setTilt(45);
             });
 
             const d = new debug.Debug(globeView, menuGlobe.gui);
