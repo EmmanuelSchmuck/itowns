@@ -69,7 +69,8 @@ view.camera.camera3D.lookAt(extent.center().xyz());
 // eslint-disable-next-line no-new
 //new itowns.FirstPersonControls(view, { focusOnClick: true, moveSpeed: 1000 });
 
-new CameraController(viewerDiv,view,extent);
+
+new CameraController(view,extent);
 
 // Request redraw
 view.notifyChange(true);

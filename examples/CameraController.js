@@ -12,71 +12,62 @@
 THREE = itowns.THREE;
 
 //scope
-var _this = null;
+let _this = null;
 
 //event keycode
-var keys = { CTRL: 17, R: 82, O: 79, F: 70, S: 83, P: 80, T: 84, M: 77, UP : 38, DOWN : 40, RIGHT : 39, LEFT : 37 };
-var mouseButtons = { LEFTCLICK: THREE.MOUSE.LEFT, MIDDLECLICK: THREE.MOUSE.MIDDLE, RIGHTCLICK: THREE.MOUSE.RIGHT };
+const keys = { CTRL: 17, R: 82, O: 79, F: 70, S: 83, P: 80, T: 84, M: 77, UP : 38, DOWN : 40, RIGHT : 39, LEFT : 37 };
+const mouseButtons = { LEFTCLICK: THREE.MOUSE.LEFT, MIDDLECLICK: THREE.MOUSE.MIDDLE, RIGHTCLICK: THREE.MOUSE.RIGHT };
 
 //control state
-var STATE = { NONE: -1, PAN: 0, TRANSLATE: 1, ROTATE: 2, PANUP: 3, TRAVEL: 4 };
-var state = STATE.NONE;
-var isCtrlDown = false;
-var select = false;
-
+const STATE = { NONE: -1, PAN: 0, TRANSLATE: 1, ROTATE: 2, PANUP: 3, TRAVEL: 4 };
+let state = STATE.NONE;
+let isCtrlDown = false;
 
 //starting camera position
-var camStartPos = new THREE.Vector3();
+let camStartPos = new THREE.Vector3();
 
 //mouse movement
-var lastMousePos = new THREE.Vector2();
-var deltaMousePos = new THREE.Vector2(0,0);
-
-//new camera position when moving
-var nextPosition = new THREE.Vector3();
+let lastMousePos = new THREE.Vector2();
+let deltaMousePos = new THREE.Vector2(0,0);
 
 //camera translation
-var panCamStart = new THREE.Vector3();
-var panStart = new THREE.Vector3();
-var panEnd = new THREE.Vector3();
-var panDelta = new THREE.Vector3();
+let panCamStart = new THREE.Vector3();
+let panStart = new THREE.Vector3();
+let panEnd = new THREE.Vector3();
+let panDelta = new THREE.Vector3();
 
 //camera focus point : ground point at screen center
-var centerPoint = new THREE.Vector3(0,0,0);
+let centerPoint = new THREE.Vector3(0,0,0);
 
 //camera rotation
-var theta = 0.0;
-var phi = 0.0;
-var thetaDelta = 0;
-var phiDelta = 0;
+let theta = 0.0;
+let phi = 0.0;
+let thetaDelta = 0;
+let phiDelta = 0;
 
 //debug shape
-var debugCube = new THREE.Mesh( new THREE.BoxGeometry( 50, 50, 50 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, wireframe: true} ) );
+let debugCube = new THREE.Mesh( new THREE.BoxGeometry( 50, 50, 50 ), new THREE.MeshBasicMaterial( {color: 0x00ff00, wireframe: true} ) );
 
 //animated travel
-var travelStarted = false;
+let travelStarted = false;
 
-var travelEndPos = new THREE.Vector3();
-var targetLook = new THREE.Vector3();
+let travelEndPos = new THREE.Vector3();
+let targetLook = new THREE.Vector3();
 
-var travelStartPos = new THREE.Vector3();
-var travelStartRot = new THREE.Quaternion();
-var travelEndRot = new THREE.Quaternion();
+let travelStartPos = new THREE.Vector3();
+let travelStartRot = new THREE.Quaternion();
+let travelEndRot = new THREE.Quaternion();
 
-var travelAlpha = 0;
-var travelDuration = 0;
+let travelAlpha = 0;
+let travelDuration = 0;
 
-var travelUseRotation = false;
-var travelUseSmooth = false;
+let travelUseRotation = false;
+let travelUseSmooth = false;
 
 //time management
-var deltaTime = 0;
-var lastElapsedTime = 0;
-var clock = new THREE.Clock();
-
-//document support
-var currentDocIndex;
-var currentDocData;
+let deltaTime = 0;
+let lastElapsedTime = 0;
+const clock = new THREE.Clock();
 
 
 /**
@@ -85,13 +76,13 @@ var currentDocData;
 * @param view : the itowns view (planar view)
 * @param extent : the itown extent
 * more parameters can be set by adding {param: value} after the 'extent' param, when creating the instance.
-* example : var controls = new CameraController(domElement, view, extent, {zoomTravelTime: 0.4, groundHeight: 200});
+* example : let controls = new CameraController(domElement, view, extent, {zoomTravelTime: 0.4, groundHeight: 200});
 */
 
-function CameraController(domElement, view, extent) {
+function CameraController(view, extent) {
 
   //extra options : some parameters have default value but can be modified with this
-  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+  const options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
 
   _this = this;
 
@@ -128,7 +119,7 @@ function CameraController(domElement, view, extent) {
 
   _this.rotateSpeed = options.rotateSpeed || 2;
 
-  _this.groundHeight = options.groundHeight || _this.cityCenter.y;
+  _this.groundHeight = options.groundHeight || _this.cityCenter.z;
 
   _this.minZenithAngle = options.minZenithAngle || 0 * Math.PI / 180;
 
@@ -167,7 +158,6 @@ function CameraController(domElement, view, extent) {
 CameraController.prototype = Object.create(THREE.EventDispatcher.prototype);
 CameraController.prototype.constructor = CameraController;
 
-
 /**
 * smoothing function (sigmoid) : based on h01 Hermite function
 * returns a value between 0 and 1
@@ -176,9 +166,9 @@ CameraController.prototype.constructor = CameraController;
 CameraController.prototype.smooth = function smooth(x) {
 
   //between 1.0 and 1.5
-  var p = 1.33;
+  const p = 1.33;
 
-  var smoothed = Math.pow((x*x*(3-2*x)),p);
+  const smoothed = Math.pow((x*x*(3-2*x)),p);
 
   return smoothed;
 
@@ -190,9 +180,8 @@ CameraController.prototype.smooth = function smooth(x) {
 */
 CameraController.prototype.getMousePos = function getMousePos(event) {
 
-  var mousePos = new THREE.Vector2();
-  mousePos.x = event.clientX;
-  mousePos.y = event.clientY;
+  const mousePos = new THREE.Vector2(event.clientX,event.clientY);
+
 
   return mousePos;
 
@@ -274,7 +263,7 @@ CameraController.prototype.startTravel = function startTravel(targetPos, travelT
     if(travelTime==="auto"){
 
       //a value between 0 and 1 according to the travel distance. Adjusted by autoTravelTimeDist parameter
-      var normalizedDistance = Math.min(1,targetPos.distanceTo(_this.position)/_this.autoTravelTimeDist);
+      const normalizedDistance = Math.min(1,targetPos.distanceTo(_this.position)/_this.autoTravelTimeDist);
 
       travelDuration = THREE.Math.lerp(_this.autoTravelTimeMin,_this.autoTravelTimeMax,normalizedDistance);
 
@@ -284,7 +273,7 @@ CameraController.prototype.startTravel = function startTravel(targetPos, travelT
       if(travelUseRotation){
 
         //value is normalized between 0 and 1
-        var angularDifference = 0.5-0.5*(travelEndRot.normalize().dot(_this.camera.quaternion.normalize()));
+        const angularDifference = 0.5-0.5*(travelEndRot.normalize().dot(_this.camera.quaternion.normalize()));
 
         travelDuration *= 1 + 2*angularDifference;
 
@@ -342,7 +331,7 @@ CameraController.prototype.handleTravel = function handleTravel(dt) {
   travelAlpha += dt / travelDuration;
 
   //the animation alpha, between 0 (start) and 1 (finish)
-  var alpha = (travelUseSmooth)? _this.smooth(travelAlpha) : travelAlpha;
+  const alpha = (travelUseSmooth)? _this.smooth(travelAlpha) : travelAlpha;
 
   //new position
   _this.position.lerpVectors(travelStartPos, travelEndPos, alpha);
@@ -369,14 +358,11 @@ CameraController.prototype.update = function update() {
   lastElapsedTime = clock.getElapsedTime();
 
   if(state===STATE.TRAVEL){
+
     _this.handleTravel(deltaTime);
-  }
-  else if(state===STATE.PAN || state===STATE.TRANSLATE || state===STATE.ROTATE){
-
-    //new camera position
-    //_this.position.copy(nextPosition);
 
   }
+
 
   //if something has changed
   if(state!==STATE.NONE){
@@ -398,7 +384,7 @@ CameraController.prototype.update = function update() {
 */
 CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCursor(posXY, height) {
 
-  var vector = new THREE.Vector3();
+  let vector = new THREE.Vector3();
 
   vector.set(
     ( posXY.x / window.innerWidth ) * 2 - 1,
@@ -407,11 +393,11 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
 
     vector.unproject( _this.camera );
 
-    var dir = vector.sub( _this.position ).normalize();
+    const dir = vector.sub( _this.position ).normalize();
 
-    var distance = (height - _this.position.z) / dir.z;
+    const distance = (height - _this.position.z) / dir.z;
 
-    var pos = _this.position.clone().add( dir.multiplyScalar( distance ) );
+    const pos = _this.position.clone().add( dir.multiplyScalar( distance ) );
 
     if(_this.debug===true){
       debugCube.position.copy(pos);
@@ -432,7 +418,7 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   CameraController.prototype.get3DPointAtScreenXY = function get3DPointAtScreenXY(posXY) {
 
     //the returned value
-    var result = new THREE.Vector3();
+    let result = new THREE.Vector3();
 
     //check if there is valid geometry under cursor
     if(typeof _this.view.getPickingPositionFromDepth(posXY) !== 'undefined'){
@@ -462,8 +448,6 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
     //the difference between start and end cursor position
     panDelta.set(0,0,0);
 
-    //nextPosition.copy(_this.position);
-
   };
 
   /**
@@ -485,7 +469,6 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
     //new camera position
 
     _this.position.sub(panDelta);
-    //nextPosition.copy(_this.position.clone().sub(panDelta));
 
     //request update
     _this.update();
@@ -499,25 +482,21 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   CameraController.prototype.smartZoom = function smartZoom(event) {
 
     //point under mouse cursor
-    var pointUnderCursor = _this.get3DPointAtScreenXY(_this.getMousePos(event));
-
-    //camera focus point (the lookAt target) at the end of the travel
-    var moveLook = new THREE.Vector3();
-    moveLook.copy(pointUnderCursor);
+    const pointUnderCursor = _this.get3DPointAtScreenXY(_this.getMousePos(event));
 
     //direction of the movement, projected on xy plane and normalized
-    var dir = new THREE.Vector3();
+    let dir = new THREE.Vector3();
     dir.copy(pointUnderCursor).sub(_this.position);
     dir.z = 0;
     dir.normalize();
 
-    var distanceToPoint = _this.position.distanceTo(pointUnderCursor);
+    const distanceToPoint = _this.position.distanceTo(pointUnderCursor);
 
     //camera height (altitude) at the end of the travel
-    var targetHeight = THREE.Math.lerp(this.smartZoomHeightMin, this.smartZoomHeightMax, Math.min(distanceToPoint/5000,1)); ;
+    const targetHeight = THREE.Math.lerp(this.smartZoomHeightMin, this.smartZoomHeightMax, Math.min(distanceToPoint/5000,1)); ;
 
     //camera position at the end of the travel
-    var moveTarget = new THREE.Vector3();
+    let moveTarget = new THREE.Vector3();
 
     moveTarget.copy(pointUnderCursor).add(dir.multiplyScalar(-targetHeight*2));
     moveTarget.z = pointUnderCursor.z + targetHeight;
@@ -529,7 +508,7 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
     }
 
     //initiate the travel
-    _this.startTravel(moveTarget,"auto", moveLook, true);
+    _this.startTravel(moveTarget,"auto", pointUnderCursor, true);
 
   };
 
@@ -542,20 +521,17 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
     //view.removeFrameRequester(controls);
 
     //initiate rotation
-    var screenCenter = new THREE.Vector2();
-    screenCenter.x=0.5*window.innerWidth;
-    screenCenter.y=0.5*window.innerHeight;
+    const screenCenter = new THREE.Vector2(0.5*window.innerWidth,0.5*window.innerHeight);
+
     centerPoint.copy(_this.get3DPointAtScreenXY(screenCenter));
 
-    var r = _this.position.distanceTo(centerPoint);
+    const r = _this.position.distanceTo(centerPoint);
     phi = Math.acos((_this.position.z-centerPoint.z) / r);
 
     if(_this.debug===true){
       debugCube.position.copy(centerPoint);
       debugCube.updateMatrixWorld();
     }
-
-    //nextPosition.copy(_this.position);
 
     state = STATE.ROTATE;
 
@@ -575,11 +551,10 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
     phiDelta = -this.rotateSpeed*deltaMousePos.y/window.innerHeight;
 
     //the vector from centerPoint (focus point) to camera position
-    var offset = new THREE.Vector3();
-    offset.copy(_this.position).sub(centerPoint);
+    const offset = _this.position.clone().sub(centerPoint);
 
-    var quat = new THREE.Quaternion().setFromUnitVectors(_this.camera.up, new THREE.Vector3(0, 0, 1));
-    var quatInverse = quat.clone().inverse();
+    const quat = new THREE.Quaternion().setFromUnitVectors(_this.camera.up, new THREE.Vector3(0, 0, 1));
+    const quatInverse = quat.clone().inverse();
 
     if (thetaDelta !== 0 || phiDelta !== 0) {
       if ((phi + phiDelta >= _this.minZenithAngle)
@@ -592,8 +567,8 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
 
         offset.applyQuaternion(quat);
 
-        var rotationXQuaternion = new THREE.Quaternion();
-        var vector = new THREE.Vector3();
+        let rotationXQuaternion = new THREE.Quaternion();
+        let vector = new THREE.Vector3();
 
         vector.setFromMatrixColumn(_this.camera.matrix, 0);
         rotationXQuaternion.setFromAxisAngle(vector, phiDelta);
@@ -605,14 +580,11 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
 
         //rotation around Z (azimuth)
 
-        var rotationZQuaternion = new THREE.Quaternion();
+        let rotationZQuaternion = new THREE.Quaternion();
         rotationZQuaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), thetaDelta);
         offset.applyQuaternion(rotationZQuaternion);
       }
     }
-
-    //new camera position
-    //nextPosition.copy(offset).add(centerPoint);
 
     _this.position.copy(offset).add(centerPoint);
 
@@ -629,9 +601,8 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   */
   CameraController.prototype.goToTopView = function goToTopView() {
 
-    var topViewPos = new THREE.Vector3();
-    var targetQuat = new THREE.Quaternion();
-
+    let topViewPos = new THREE.Vector3();
+    let targetQuat = new THREE.Quaternion();
 
     targetQuat.setFromAxisAngle( new THREE.Vector3( 1, 0, 0 ), 0*Math.PI / 2 );
 
@@ -649,9 +620,7 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   */
   CameraController.prototype.goToStartView = function goToStartView() {
 
-
     _this.startTravel(_this.startPosition,"auto",_this.startLook,true);
-
 
   }
 
@@ -659,7 +628,7 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   /**
   * Triggers a Zoom animated movement (travel) toward the point under mouse cursor
   * The camera will be moved toward / away from the point under mouse cursor
-  * The zoom intensity varies according to the distance to the point.
+  * The zoom intensity leties according to the distance to the point.
   * The closer to the ground, the lower the intensity
   * This means that user can zoom infinitly closer to the ground, but cannot go through it
   * Orientation will not change (TO DO : test with orientation change)
@@ -674,33 +643,21 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
       delta = -event.detail;
     }
 
-    //center of the screen, in screen space (xy)
-    var screenCenter = new THREE.Vector2();
-    screenCenter.x=0.5*window.innerWidth;
-    screenCenter.y=0.5*window.innerHeight;
+    const pointUnderCursor = _this.get3DPointAtScreenXY(_this.getMousePos(event));
 
-    //world point (xyz) under screen center
-    var pointUnderScreenCenter = _this.get3DPointAtScreenXY(screenCenter);
-
-    var pointUnderCursor = _this.get3DPointAtScreenXY(_this.getMousePos(event));
-
-    var zoomTarget = new THREE.Vector3();
-    zoomTarget.copy(pointUnderScreenCenter);
-    zoomTarget.copy(pointUnderCursor);
-
-    var newPos = new THREE.Vector3();
+    let newPos = new THREE.Vector3();
 
     //Zoom IN
     if(delta>0){
 
       //debug
       if(_this.debug===true){
-        debugCube.position.copy(zoomTarget);
+        debugCube.position.copy(pointUnderCursor);
         debugCube.updateMatrixWorld();
       }
 
       //target position
-      newPos.lerpVectors(_this.position,zoomTarget,_this.zoomInFactor);
+      newPos.lerpVectors(_this.position,pointUnderCursor,_this.zoomInFactor);
 
       //initiate travel
       _this.startTravel(newPos,_this.zoomTravelTime, "none", false);
@@ -711,12 +668,12 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
 
       //debug
       if(_this.debug===true){
-        debugCube.position.copy(zoomTarget);
+        debugCube.position.copy(pointUnderCursor);
         debugCube.updateMatrixWorld();
       }
 
       //target position
-      newPos.lerpVectors(_this.position,zoomTarget,-1*_this.zoomOutFactor);
+      newPos.lerpVectors(_this.position,pointUnderCursor,-1*_this.zoomOutFactor);
 
       //initiate travel
       _this.startTravel(newPos,_this.zoomTravelTime, "none", false);
@@ -755,17 +712,12 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   if (isCtrlDown) {
         _this.initiateRotate();
       } else {
-
         _this.handleMouseDownPan(event);
         state = STATE.PAN;
       }
     } else if (event.button === mouseButtons.MIDDLECLICK) {
-
       _this.smartZoom(event);
-
-
     } else if (event.button === mouseButtons.RIGHTCLICK) {
-
       _this.initiateRotate();
     }
 
@@ -827,18 +779,13 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   CameraController.prototype.onKeyDown = function onKeyDown(event) {
 
     if (event.keyCode === keys.T) {
-
       _this.goToTopView();
-
     }
     if (event.keyCode === keys.S) {
-
       _this.goToStartView();
-
     }
     if (event.keyCode === keys.CTRL) {
       isCtrlDown = true;
-
     }
 
     window.addEventListener('keyup', _this.onKeyUp, false);
@@ -895,8 +842,6 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
     _this.domElement.addEventListener('mousewheel', _this.onMouseWheel, false);
     // For firefox
     _this.domElement.addEventListener('MozMousePixelScroll', _this.onMouseWheel, false);
-
-
   };
 
   /**
@@ -905,24 +850,16 @@ CameraController.prototype.get3DPointUnderCursor = function get3DPointUnderCurso
   CameraController.prototype.updateCursorType = function updateCursorType() {
 
     if(state===STATE.NONE){
-
       _this.domElement.style.cursor = "auto";
-
     }
     else if(state===STATE.PAN){
-
       _this.domElement.style.cursor = "move";
-
     }
     else if(state===STATE.TRAVEL){
-
       _this.domElement.style.cursor = "wait";
-
     }
     else if(state===STATE.ROTATE){
-
       _this.domElement.style.cursor = "move";
-
     }
 
   };
