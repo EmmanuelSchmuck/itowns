@@ -59,14 +59,17 @@
         <div id="help">
             <p>Key bindings</p>
             <ul>
-              <li>↑ ↓ : forward / backward</li>
-              <li>← → : strafe left / right</li>
-              <li>⇞ (PageUp), ⇟ (PageDown) : move up / down</li>
-              <li>mouse Clic + drag : camera rotation</li>
+              <li>Mouse Left-Click + drag : camera translation</li>
+              <li>Mouse Right-Click + drag : camera rotation</li>
+              <li>Mouse Wheel-Click (Middle Button) : smart zoom</li>
+              <li>Mouse Wheel : zoom in/out</li>
+              <li>S : orient camera to the start view</li>
+              <li>T : orient camera to a top view</li>
             </ul>
         </div>
         <div id="viewerDiv"></div>
         <script src="../dist/itowns.js"></script>
+        <script src="CameraController.js"></script>
         <script type="text/javascript">
             var renderer; var exports = {};
         </script>
