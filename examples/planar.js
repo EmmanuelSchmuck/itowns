@@ -61,13 +61,13 @@ view.tileLayer.materialOptions = {
     colorTextureElevationMaxZ: 240,
 };
 
-view.camera.setPosition(new itowns.Coordinates('EPSG:3946', extent.west(), extent.south(), 2000));
-// Then look at extent's center
-view.camera.camera3D.lookAt(extent.center().xyz());
+var startingPosition = new itowns.THREE.Vector3(extent.west(), extent.south(), 2000);
 
 // instanciate controls
 
-new itowns.PlanarControls(view,extent);
+new itowns.PlanarControls(view,extent,{startPos : startingPosition});
+
+
 
 // Request redraw
 view.notifyChange(true);
