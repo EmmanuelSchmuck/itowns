@@ -1,4 +1,3 @@
-// Class: PlanarControls
 // Description: Camera controls adapted for a planar view, with animated movements
 // Left mouse button + drag : translates the camera on the horizontal (xy) plane.
 // Right mouse button (or ctrl + left mouse) + drag : rotates around the camera's focus point.
@@ -19,7 +18,6 @@ let _handlerMouseUp;
 
 // control state
 const STATE = { NONE: -1, PAN: 0, ROTATE: 1, TRAVEL: 2 };
-
 let state = STATE.NONE;
 let isCtrlDown = false;
 
@@ -61,20 +59,14 @@ const clock = new THREE.Clock();
 // @param domElement : the webgl div (city visualization)
 // @param view : the itowns view (planar view)
 // @param extent : the itown extent
-function PlanarControls(view, extent, options = {}) {
+function PlanarControls(view, options = {}) {
     this.camera = view.camera.camera3D;
     this.domElement = view.mainLoop.gfxEngine.renderer.domElement;
     this.view = view;
     this.position = this.camera.position;
     this.rotation = this.camera.rotation;
-    this.extent = extent;
-    this.cityCenter = this.extent.center().xyz();
 
-    // PlanarControls options ========================== (start here)
-
-    this.startPosition = options.startPos || this.cityCenter.clone().add(new THREE.Vector3(3000, 3000, 2000));
-    this.startLook = options.startLook || this.cityCenter;
-    this.topViewAltitude = options.topViewAltitude || 13000;
+    this.topViewAltitude = options.topViewAltitude || 10000;
 
     // min and max duration for animated travels with 'auto' parameter
     this.autoTravelTimeMin = options.autoTravelTimeMin || 1.5;
@@ -97,7 +89,7 @@ function PlanarControls(view, extent, options = {}) {
 
     this.rotateSpeed = options.rotateSpeed || 2;
 
-    this.groundHeight = options.groundHeight || this.cityCenter.z;
+    this.groundHeight = options.groundHeight || 200;
 
     this.minZenithAngle = options.minZenithAngle || 0 * Math.PI / 180;
 
@@ -105,10 +97,6 @@ function PlanarControls(view, extent, options = {}) {
     this.maxZenithAngle = options.maxZenithAngle || 82.5 * Math.PI / 180;
 
     // PlanarControls options ========================== (end here)
-
-    // starting camera position & rotation
-    this.position.copy(this.startPosition);
-    this.camera.lookAt(this.startLook);
 
     // prevent the default contextmenu from appearing when right-clicking
     // this allows to use right-click for input without the menu appearing
@@ -382,9 +370,10 @@ function PlanarControls(view, extent, options = {}) {
         this.startTravel(moveTarget, 'auto', pointUnderCursor, true);
     };
 
-    // ===============================================================
+    /** ===============================================================
     // Initiate a rotate (orbit) movement when user does a right-click or ctrl
     // @param event : the mouse down event.
+    */
     this.initiateRotate = function initiateRotate() {
         // initiate rotation
         const screenCenter = new THREE.Vector2(0.5 * window.innerWidth, 0.5 * window.innerHeight);
@@ -469,7 +458,7 @@ function PlanarControls(view, extent, options = {}) {
     // ===============================================================
     // Triggers an animated movement (travel) to set the camera to starting view
     this.goToStartView = function goToStartView() {
-        this.startTravel(this.startPosition, 'auto', this.startLook, true);
+        this.startTravel(this.startPosition, 'auto', this.cityCenter, true);
     };
 
     // ===============================================================
@@ -524,6 +513,14 @@ function PlanarControls(view, extent, options = {}) {
             this.domElement.style.cursor = 'move';
         }
     };
+
+    // start position and target can be set outside this class, before instanciating PlanarControls
+    // or they can be set in options : startPosition and cityCenter (which is the camera lookAt target)
+    this.startPosition = options.startPosition || this.position.clone();
+    this.cityCenter = options.cityCenter || this.get3DPointAtScreenXY(new THREE.Vector2(0.5 * window.innerWidth, 0.5 * window.innerHeight));
+
+    this.position.copy(this.startPosition);
+    this.camera.lookAt(this.cityCenter);
 
     PlanarControls.prototype = Object.create(THREE.EventDispatcher.prototype);
     PlanarControls.prototype.constructor = PlanarControls;
@@ -646,7 +643,6 @@ var onMouseWheel = function onMouseWheel(event) {
 var onContextMenu = function onContextMenu(event) {
     event.preventDefault();
 };
-
 
 // ===============================================================
 // smoothing function (sigmoid) : based on h01 Hermite function
