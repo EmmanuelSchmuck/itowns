@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 
 // event keycode
-const keys = { CTRL: 17, R: 82, O: 79, F: 70, S: 83, P: 80, T: 84, M: 77, UP: 38, DOWN: 40, RIGHT: 39, LEFT: 37 };
+const keys = { CTRL: 17, S: 83, T: 84 };
 const mouseButtons = { LEFTCLICK: THREE.MOUSE.LEFT, MIDDLECLICK: THREE.MOUSE.MIDDLE, RIGHTCLICK: THREE.MOUSE.RIGHT };
 
 // event handlers
