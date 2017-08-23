@@ -67,8 +67,6 @@ var startingPosition = new itowns.THREE.Vector3(extent.west(), extent.south(), 2
 
 new itowns.PlanarControls(view,extent,{startPos : startingPosition});
 
-
-
 // Request redraw
 view.notifyChange(true);
 

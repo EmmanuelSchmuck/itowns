@@ -16,7 +16,7 @@ const keys = { CTRL: 17, R: 82, O: 79, F: 70, S: 83, P: 80, T: 84, M: 77, UP: 38
 const mouseButtons = { LEFTCLICK: THREE.MOUSE.LEFT, MIDDLECLICK: THREE.MOUSE.MIDDLE, RIGHTCLICK: THREE.MOUSE.RIGHT };
 
 // control state
-const STATE = { NONE: -1, PAN: 0, TRANSLATE: 1, ROTATE: 2, PANUP: 3, TRAVEL: 4 };
+const STATE = { NONE: -1, PAN: 0, ROTATE: 1, TRAVEL: 2 };
 
 let state = STATE.NONE;
 let isCtrlDown = false;
@@ -57,8 +57,7 @@ let deltaTime = 0;
 let lastElapsedTime = 0;
 const clock = new THREE.Clock();
 
-
-class PlanarControls extends THREE.EventDispatcher {
+function PlanarControls (view, extent, options = {}) {
 
     /*
     * Constructor
@@ -69,8 +68,6 @@ class PlanarControls extends THREE.EventDispatcher {
     * example : let controls = new PlanarControl(domElement, view, extent, {zoomTravelTime: 0.4, groundHeight: 200});
     */
 
-    constructor(view, extent, options = {}) {
-        super();
 
         this.camera = view.camera.camera3D;
         this.domElement = view.mainLoop.gfxEngine.renderer.domElement;
@@ -87,11 +84,13 @@ class PlanarControls extends THREE.EventDispatcher {
 
         this.startPosition = options.startPos || this.cityCenter.clone().add(new THREE.Vector3(3000, 3000, 2000));
         this.startLook = options.startLook || this.cityCenter;
-        this.topViewAltitude = options.topViewAltitude || 10000;
+        this.topViewAltitude = options.topViewAltitude || 13000;
 
         this.autoTravelTimeMin = options.autoTravelTimeMin || 1.5;
-        this.autoTravelTimeMax = options.autoTravelTimeMax || 5;
-        this.autoTravelTimeDist = options.autoTravelTimeDist || 30000;
+        this.autoTravelTimeMax = options.autoTravelTimeMax || 4;
+
+        // max travel time is reached for this distance
+        this.autoTravelTimeDist = options.autoTravelTimeDist || 20000;
 
         this.smartZoomHeightMin = options.smartZoomHeightMin || 100;
         this.smartZoomHeightMax = options.smartZoomHeightMax || 500;
@@ -110,7 +109,7 @@ class PlanarControls extends THREE.EventDispatcher {
         this.minZenithAngle = options.minZenithAngle || 0 * Math.PI / 180;
 
         // should be less than 90 deg (90 = parallel to the ground)
-        this.maxZenithAngle = options.maxZenithAngle || 80 * Math.PI / 180;
+        this.maxZenithAngle = options.maxZenithAngle || 82.5 * Math.PI / 180;
 
         // starting camera position & rotation
         this.position.copy(this.startPosition);
@@ -121,12 +120,18 @@ class PlanarControls extends THREE.EventDispatcher {
         this.domElement.addEventListener('contextmenu', onContextMenu.bind(this), false);
 
         // event listeners for user input
-        this.addInputListeners();
+        window.addEventListener('keydown', onKeyDown.bind(this), true);
+
+        this.domElement.addEventListener('mousedown', onMouseDown.bind(this), false);
+
+        this.domElement.addEventListener('mousewheel', onMouseWheel.bind(this), false);
+        // For firefox
+        this.domElement.addEventListener('MozMousePixelScroll', onMouseWheel.bind(this), false);
 
         // add this PlanarControl instance to the view's framerequesters
         // with this, PlanarControl.update() will be called each frame
         this.view.addFrameRequester(this);
-    }
+
 
     /*
     * triggers an animated movement & rotation for the camera
@@ -139,7 +144,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * if targetOrientation is a world point (Vector3) : the camera will lookAt() this point
     * if targetOrientation is a quaternion : this quaternion will define the final camera orientation
     */
-    startTravel(targetPos, travelTime, targetOrientation, useSmooth) {
+    this.startTravel = function startTravel(targetPos, travelTime, targetOrientation, useSmooth) {
         // control state
         state = STATE.TRAVEL;
 
@@ -147,7 +152,7 @@ class PlanarControls extends THREE.EventDispatcher {
         this.updateCursorType();
 
         // prevent input
-        this.removeInputListeners();
+        // this.removeInputListeners();
 
         travelUseRotation = !(targetOrientation === 'none');
         travelUseSmooth = useSmooth;
@@ -223,14 +228,14 @@ class PlanarControls extends THREE.EventDispatcher {
     /*
     * resume normal behavior after a travel is completed
     */
-    endTravel() {
+    this.endTravel = function endTravel() {
         this.position.copy(travelEndPos);
 
         if (travelUseRotation) {
             this.camera.quaternion.copy(travelEndRot);
         }
 
-        this.addInputListeners();
+        // this.addInputListeners();
 
         state = STATE.NONE;
 
@@ -243,7 +248,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * handle the animated movement and rotation of the camera in 'travel' state
     * @param dt : the deltatime between two updates
     */
-    handleTravel(dt) {
+    this.handleTravel = function handleTravel(dt) {
         if (!travelStarted) {
             travelStarted = true;
             return;
@@ -271,7 +276,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * PlanarControl update  : called each frame
     * updates the view and camera if needed, and handles the animated travel
     */
-    update() {
+    this.update = function update() {
         deltaTime = clock.getElapsedTime() - lastElapsedTime;
         lastElapsedTime = clock.getElapsedTime();
 
@@ -295,7 +300,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * @param posXY : the mouse position in screen space (unit : pixel)
     * @param height : the height of the mathematical plane (ground height)
     */
-    get3DPointUnderCursor(posXY, height) {
+    this.get3DPointUnderCursor = function get3DPointUnderCursor(posXY, height) {
         const vector = new THREE.Vector3();
 
         vector.set((posXY.x / window.innerWidth) * 2 - 1, -(posXY.y / window.innerHeight) * 2 + 1, 0.5);
@@ -317,7 +322,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * if no geometry is under the cursor, the point is obtained with get3DPointUnderCursor
     * @param posXY : the mouse position in screen space (unit : pixel)
     */
-    get3DPointAtScreenXY(posXY) {
+    this.get3DPointAtScreenXY = function get3DPointAtScreenXY(posXY) {
         // the returned value
         const result = new THREE.Vector3();
 
@@ -339,7 +344,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * This allows the user to 'grab' a world point and drag it to move (eg : google map)
     * @param event : the mouse down event.
     */
-    handleMouseDownPan(event) {
+    this.handleMouseDownPan = function handleMouseDownPan(event) {
         // the world point under mouse cursor when the pan movement is started
         panStart.copy(this.get3DPointAtScreenXY(getMousePos(event)));
 
@@ -355,7 +360,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * This allows the user to 'grab' a world point and drag it to move (eg : google map)
     * @param event : the mouse move event.
     */
-    handleMouseMovePan(event) {
+    this.handleMouseMovePan = function handleMouseMovePan(event) {
         // the world point under the current mouse cursor position, at same height than panStart
         panEnd.copy(this.get3DPointUnderCursor(getMousePos(event), panStart.z));
 
@@ -376,7 +381,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * @param event : the mouse wheel click (middle mouse button) event.
     */
 
-    smartZoom(event) {
+    this.smartZoom = function smartZoom(event) {
         // point under mouse cursor
         const pointUnderCursor = this.get3DPointAtScreenXY(getMousePos(event));
 
@@ -406,7 +411,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * @param event : the mouse down event.
     */
 
-    initiateRotate() {
+    this.initiateRotate = function initiateRotate() {
         // initiate rotation
         const screenCenter = new THREE.Vector2(0.5 * window.innerWidth, 0.5 * window.innerHeight);
 
@@ -418,6 +423,8 @@ class PlanarControls extends THREE.EventDispatcher {
         state = STATE.ROTATE;
     }
 
+    _handlerMouseMove = onMouseMove.bind(this);
+
     /*
     * Handle the rotate movement (orbit) when user moves the mouse
     * the movement is an orbit around 'centerPoint', the camera focus point (ground point at screen center)
@@ -425,7 +432,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * Compute the new position value and update the camera controls.
     */
 
-    handleMouseMoveRotate() {
+    this.handleMouseMoveRotate = function handleMouseMoveRotate() {
         // angle deltas
         // deltaMousePos is computed in onMouseMove / onMouseDown s
         thetaDelta = -this.rotateSpeed * deltaMousePos.x / window.innerWidth;
@@ -476,7 +483,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * Triggers an animated movement (travel) to set the camera to top view
     * Camera will be moved above cityCenter at a 10km altitude, looking at cityCenter
     */
-    goToTopView() {
+    this.goToTopView = function goToTopView() {
         const topViewPos = new THREE.Vector3();
         const targetQuat = new THREE.Quaternion();
 
@@ -492,7 +499,7 @@ class PlanarControls extends THREE.EventDispatcher {
     /*
     * Triggers an animated movement (travel) to set the camera to starting view
     */
-    goToStartView() {
+    this.goToStartView = function goToStartView() {
         this.startTravel(this.startPosition, 'auto', this.startLook, true);
     }
 
@@ -505,8 +512,7 @@ class PlanarControls extends THREE.EventDispatcher {
     * Orientation will not change (TO DO : test with orientation change)
     * @param event : the mouse wheel event.
     */
-
-    startZoom(event) {
+    this.startZoom = function startZoom(event) {
         let delta;
 
         // mousewheel delta
@@ -539,34 +545,9 @@ class PlanarControls extends THREE.EventDispatcher {
     }
 
     /*
-    * Remove all input listeners (block user input)
-    */
-    removeInputListeners() {
-        window.removeEventListener('keydown', onKeyDown.bind(this), true);
-
-        this.domElement.removeEventListener('mousedown', onMouseDown.bind(this), false);
-        this.domElement.removeEventListener('mousewheel', onMouseWheel.bind(this), false);
-        // For firefox
-        this.domElement.removeEventListener('MozMousePixelScroll', onMouseWheel.bind(this), false);
-    }
-
-    /*
-    * Add all input listeners (enable user input)
-    */
-    addInputListeners() {
-        window.addEventListener('keydown', onKeyDown.bind(this), true);
-
-        this.domElement.addEventListener('mousedown', onMouseDown.bind(this), false);
-
-        this.domElement.addEventListener('mousewheel', onMouseWheel.bind(this), false);
-        // For firefox
-        this.domElement.addEventListener('MozMousePixelScroll', onMouseWheel.bind(this), false);
-    }
-
-    /*
     * update the cursor image according to the control state
     */
-    updateCursorType() {
+    this.updateCursorType = function updateCursorType() {
         if (state === STATE.NONE) {
             this.domElement.style.cursor = 'auto';
         }
@@ -580,15 +561,26 @@ class PlanarControls extends THREE.EventDispatcher {
             this.domElement.style.cursor = 'move';
         }
     }
+
+    PlanarControls.prototype = Object.create(THREE.EventDispatcher.prototype);
+    PlanarControls.prototype.constructor = PlanarControls;
 }
+
+
+
 
 /*
 * Catch and manage the event when a touch on the mouse is down.
 * @param event: the current event (mouse left button clicked or mouse wheel button actionned)
 */
 
-function onMouseDown(event) {
+var onMouseDown = function onMouseDown(event) {
+    console.log("mousedown");
     event.preventDefault();
+
+    if (state === STATE.TRAVEL) {
+        return;
+    }
 
     lastMousePos.copy(getMousePos(event));
 
@@ -606,12 +598,17 @@ function onMouseDown(event) {
     }
 
     if (state !== STATE.NONE) {
-        this.domElement.addEventListener('mousemove', onMouseMove.bind(this), false);
+
+        this.domElement.addEventListener('mousemove', _handlerMouseMove, false);
         this.domElement.addEventListener('mouseup', onMouseUp.bind(this), false);
+
     }
 
     this.updateCursorType();
 }
+
+
+
 
 /*
 * Catch the event when a touch on the mouse is uped. Reinit the state of the controller and disable.
@@ -619,11 +616,13 @@ function onMouseDown(event) {
 * @param event: the current event
 */
 
-function onMouseUp(event) {
+var onMouseUp = function onMouseUp(event) {
+
     event.preventDefault();
 
-    this.domElement.removeEventListener('mousemove', onMouseMove.bind(this), false);
-    this.domElement.removeEventListener('mouseup', onMouseUp.bind(this), false);
+    this.domElement.removeEventListener('mousemove', _handlerMouseMove, false);
+    this.domElement.removeEventListener('mouseup', onMouseUp.bind(this));
+
 
     panDelta.set(0, 0, 0);
 
@@ -639,7 +638,10 @@ function onMouseUp(event) {
 * Can be called when the state of the controller is different of NONE.
 * @param event: the current event
 */
-function onMouseMove(event) {
+var onMouseMove = function onMouseMove(event) {
+
+    console.log("mousemove");
+
     event.preventDefault();
 
     deltaMousePos.copy(getMousePos(event)).sub(lastMousePos);
@@ -652,24 +654,40 @@ function onMouseMove(event) {
     { this.handleMouseMovePan(event); }
 }
 
+var _handlerMouseMove = onMouseMove.bind(this);
 
 /*
 * Catch and manage the event when a key is up.
 * @param event: the current event
 */
 
-function onKeyUp(event) {
+var onKeyUp = function onKeyUp(event) {
+
+    console.log("keyup");
     if (event.keyCode === keys.CTRL) {
         isCtrlDown = false;
-        this.domElement.removeEventListener('keyup', onKeyDown.bind(this), true);
+
+
     }
+    window.removeEventListener('keyup', onKeyUp.bind(this));
+
+
 }
 /*
 * Catch and manage the event when a key is down.
 * @param event: the current event
 */
 
-function onKeyDown(event) {
+var onKeyDown = function onKeyDown(event) {
+
+    window.addEventListener('keyup', onKeyUp.bind(this), true);
+    //this.domElement.addEventListener('mouseup', onMouseUp.bind(this), false);
+
+    console.log("keydown");
+    if (state === STATE.TRAVEL) {
+        return;
+    }
+
     if (event.keyCode === keys.T) {
         this.goToTopView();
     }
@@ -679,7 +697,7 @@ function onKeyDown(event) {
     if (event.keyCode === keys.CTRL) {
         isCtrlDown = true;
     }
-    this.domElement.addEventListener('keyup', onKeyUp.bind(this), true);
+
 }
 
 /*
@@ -687,7 +705,7 @@ function onKeyDown(event) {
 * @param event: the current event
 */
 
-function onMouseWheel(event) {
+var onMouseWheel = function onMouseWheel(event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -701,7 +719,7 @@ function onMouseWheel(event) {
 * We use this to prevent the context menu from appearing, so we can use right click for other inputs.
 * @param event: the current event
 */
-function onContextMenu(event) {
+var onContextMenu = function onContextMenu(event) {
     event.preventDefault();
 }
 
@@ -710,9 +728,9 @@ function onContextMenu(event) {
 * returns a value between 0 and 1
 * @param x : the value to be smoothed, between 0 and 1
 */
-function smooth(x) {
+var smooth = function smooth(x) {
     // between 1.0 and 1.5
-    const p = 1.33;
+    const p = 1.25;
 
     const smoothed = Math.pow((x * x * (3 - 2 * x)), p);
 
@@ -723,7 +741,9 @@ function smooth(x) {
 * return the mouse pixel position (x,y) on screen as a vector2
 * @param event : the mouse event
 */
-function getMousePos(event) {
+var getMousePos = function getMousePos(event) {
     const mousePos = new THREE.Vector2(event.clientX, event.clientY);
     return mousePos;
 }
+
+//export default PlanarControls;
