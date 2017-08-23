@@ -66,7 +66,8 @@ view.camera.setPosition(new itowns.Coordinates('EPSG:3946', extent.west(), exten
 view.camera.camera3D.lookAt(extent.center().xyz());
 
 // instanciate controls
-new itowns.PlanarControls(view,{});
+// eslint-disable-next-line no-new
+new itowns.PlanarControls(view, {});
 
 // Request redraw
 view.notifyChange(true);
